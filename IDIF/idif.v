@@ -1,0 +1,342 @@
+/*
+module idif
+(
+clk,rst,
+xr0,xr1,xr2,xr3,xr4,xr5,xr6,xr7,
+xi0,xi1,xi2,xi3,xi4,xi5,xi6,xi7,
+wr20,wi20,
+wr40,wi40,
+wr41,wi41,
+wr80,wi80,
+wr81,wi81,
+wr82,wi82,
+wr83,wi83,
+sel,
+yr,yi
+);
+*/
+
+module idif
+(
+clk,rst,
+xr0,xr1,xr2,xr3,xr4,xr5,xr6,xr7,
+xi0,xi1,xi2,xi3,xi4,xi5,xi6,xi7,
+sel,
+yr,yi
+);
+
+input wire clk,rst;
+
+input wire signed [7:0] xr0,xr1,xr2,xr3,xr4,xr5,xr6,xr7,   //Real part of input
+			xi0,xi1,xi2,xi3,xi4,xi5,xi6,xi7;    //Imaginary part of input
+
+/*
+//Twiddle Factors
+input wire signed [7:0] wr20,wi20,
+                  	wr40,wi40,
+                  	wr41,wi41,
+		  	wr80,wi80,
+		 	wr81,wi81,
+		  	wr82,wi82,
+  		 	wr83,wi83;
+*/
+
+//Twiddle Factors
+parameter [7:0] wr20=1; //real
+parameter [7:0] wi20=0; //imaginary
+
+
+parameter [7:0] wr40=1; //real
+parameter [7:0] wi40=0; //imaginary
+
+parameter [7:0] wr41=0;  //real
+parameter [7:0] wi41=1; //imaginary
+
+
+parameter [7:0] wr80=1; //real
+parameter [7:0] wi80=0; //imaginary     
+
+parameter [7:0] wr81=0.707;   //real
+parameter [7:0] wi81=0.707; //imaginary
+
+parameter [7:0] wr82=0;      //real
+parameter [7:0] wi82=1;     //imaginary
+
+parameter [7:0] wr83=-0.707; //real
+parameter [7:0] wi83=0.707; //imaginary
+
+input wire [2:0] sel;
+
+output reg signed [7:0] yr,yi;
+
+wire signed [7:0] y0r,y1r,y2r,y3r,y4r,y5r,y6r,y7r,
+		  y0i,y1i,y2i,y3i,y4i,y5i,y6i,y7i;
+
+
+wire signed [7:0] br0,bi0,
+		  br1,bi1,
+		  br2,bi2,
+		  br3,bi3,
+		  br4,bi4,
+		  br5,bi5,
+		  br6,bi6,
+		  br7,bi7; //Stage-1 [2-Point]
+
+wire signed [7:0] cr0,ci0,
+		  cr1,ci1,
+		  cr2,ci2,
+		  cr3,ci3,
+		  cr4,ci4,
+		  cr5,ci5,
+		  cr6,ci6,
+		  cr7,ci7; //Stage-2 [4-Point]
+
+
+
+/*
+assign wr20=1;	//real
+assign wi20=0;	//imaginary
+
+assign wr40=1;  //real
+assign wi40=0;  //imaginary
+
+assign wr41=0;           //real
+assign wi41=+1;		//imaginary
+
+assign wr80=1;  //real
+assign wi80=0;  //imaginary
+
+
+assign wr81=0.707;      //real
+assign wi81=+0.707;	//imaginary
+
+assign wr82=0;		//real
+assign wi82=+1;		//imaginary
+
+
+assign wr83=-0.707;	//real
+assign wi83=+0.707;	//imaginary
+*/
+
+/*
+assign wr81=8'b01011010;
+assign wi81=8'b10100101;
+*/
+
+/*
+assign wr83=8'b10100101;
+assign wi83=8'b10100101;
+*/
+
+//Stage-1 [2-Point]
+bfly4_8 b21(xr0,xr4,xi0,xi4,wr20,wi20,br0,br1,bi0,bi1);
+bfly4_8 b22(xr2,xr6,xi2,xi6,wr20,wi20,br2,br3,bi2,bi3);
+bfly4_8 b23(xr1,xr5,xi1,xi5,wr20,wi20,br4,br5,bi4,bi5);
+bfly4_8 b24(xr3,xr7,xi3,xi7,wr20,wi20,br6,br7,bi6,bi7);
+
+//Stage-2 [4-Point]
+bfly4_8 b41(br0,br2,bi0,bi2,wr40,wi40,cr0,cr1,ci0,ci1);
+bfly4_8 b42(br1,br3,bi1,bi3,wr41,wi41,cr2,cr3,ci2,ci3);
+bfly4_8 b43(br4,br6,bi4,bi6,wr40,wi40,cr4,cr5,ci4,ci5);
+bfly4_8 b44(br5,br7,bi5,bi7,wr41,wi41,cr6,cr7,ci6,ci7);
+
+//Stage-3 [8-Point]
+bfly4_8 b81(cr0,cr4,ci0,ci4,wr80,wi80,y0r,y4r,y0i,y4i);
+bfly4_8 b82(cr2,cr6,ci2,ci6,wr81,wi81,y1r,y5r,y1i,y5i);
+bfly4_8 b83(cr1,cr5,ci1,ci5,wr82,wi82,y2r,y6r,y2i,y6i);
+bfly4_8 b84(cr3,cr7,ci3,ci7,wr83,wi83,y3r,y7r,y3i,y7i);
+
+
+always@(posedge clk)
+begin
+  if(rst) begin
+  yr=0;
+  yi=0;
+  end
+
+  else   begin 
+     case(sel)
+  0:begin yr=y0r; yi=y0i; end
+  1:begin yr=y1r; yi=y1i; end
+  2:begin yr=y2r; yi=y2i; end
+  3:begin yr=y3r; yi=y3i; end
+  4:begin yr=y4r; yi=y4i; end
+  5:begin yr=y5r; yi=y5i; end
+  6:begin yr=y6r; yi=y6i; end
+  7:begin yr=y7r; yi=y7i; end
+
+ endcase
+ end
+end
+
+endmodule
+
+
+/*
+always@*
+     case(sel)
+  0:begin yr=y0r; yi=y0i; end
+  1:begin yr=y1r; yi=y1i; end
+  2:begin yr=y2r; yi=y2i; end
+  3:begin yr=y3r; yi=y3i; end
+  4:begin yr=y4r; yi=y4i; end
+  5:begin yr=y5r; yi=y5i; end
+  6:begin yr=y6r; yi=y6i; end
+  7:begin yr=y7r; yi=y7i; end
+ endcase
+endmodule
+*/
+
+/*
+always@(posedge clk)
+     case(sel)
+  0:begin yr=cr0; yi=ci0; end
+  1:begin yr=cr1; yi=ci1; end
+  2:begin yr=cr2; yi=ci2; end
+  3:begin yr=cr3; yi=ci3; end
+  4:begin yr=cr4; yi=ci4; end
+  5:begin yr=cr5; yi=ci5; end
+  6:begin yr=cr6; yi=ci6; end
+  7:begin yr=cr7; yi=ci7; end
+ endcase
+endmodule
+*/
+
+/*
+always@*
+     case(sel)
+  0:begin yr=cr0; yi=ci0; end
+  1:begin yr=cr1; yi=ci1; end
+  2:begin yr=cr2; yi=ci2; end
+  3:begin yr=cr3; yi=ci3; end
+  4:begin yr=cr4; yi=ci4; end
+  5:begin yr=cr5; yi=ci5; end
+  6:begin yr=cr6; yi=ci6; end
+  7:begin yr=cr7; yi=ci7; end
+ endcase
+endmodule
+*/
+
+/*
+always@(posedge clk)
+     case(sel)
+  0:begin yr=br0; yi=bi0; end
+  1:begin yr=br1; yi=bi1; end
+  2:begin yr=br2; yi=bi2; end
+  3:begin yr=br3; yi=bi3; end
+  4:begin yr=br4; yi=bi4; end
+  5:begin yr=br5; yi=bi5; end
+  6:begin yr=br6; yi=bi6; end
+  7:begin yr=br7; yi=bi7; end
+ endcase
+*/
+
+/*
+always@*
+     case(sel)
+  0:begin yr=br0; yi=bi0; end
+  1:begin yr=br1; yi=bi1; end
+  2:begin yr=br2; yi=bi2; end
+  3:begin yr=br3; yi=bi3; end
+  4:begin yr=br4; yi=bi4; end
+  5:begin yr=br5; yi=bi5; end
+  6:begin yr=br6; yi=bi6; end
+  7:begin yr=br7; yi=bi7; end
+ endcase
+
+endmodule
+
+module bfly2
+(
+xr0,xr1,xi0,xi1,
+wr0,wi0,
+yr0,yr1,yi0,yi1
+);
+
+
+input wire signed [2:0] xr0,xr1,	//Real part of input
+			xi0,xi1;	//Imaginary part of input
+	
+input wire signed [7:0] wr0,	        //Real part of twiddle factor
+			wi0;		//Imaginary part of twiddle factor 
+
+output wire signed [7:0] yr0,yr1,	//Real part of output
+			 yi0,yi1;	//Imaginary part of output
+
+wire signed [7:0] pr0,pr1;   		//Real part of product
+
+wire signed [7:0] pi0,pi1;		//Imaginary part of product
+
+wire signed [7:0] si0,			//Imaginary part of sum
+		  sr0;			//real part of sum
+
+//wire signed [7:0] p,q;
+
+/*
+input wire [2:0] xr0,xr1,	//Real part of input
+		 xi0,xi1;	//Imaginary part of input
+	
+input wire [7:0] wr0,	        //Real part of twiddle factor
+		 wi0;		//Imaginary part of twiddle factor 
+
+output wire [7:0] yr0,yr1,	//Real part of output
+		  yi0,yi1;	//Imaginary part of output
+
+wire [7:0] pr0,pr1;   		//Real part of product
+
+wire [7:0] pi0,pi1;		//Imaginary part of product
+
+wire [7:0] si0,			//Imaginary part of sum
+	   sr0;			//real part of sum
+
+wire [7:0] p,q;
+*/
+
+/*
+assign pi0=wi0*xr1; 	//imaginary
+assign pi1=wr0*xi1; 	//imaginary
+assign pr0=wr0*xr1; 	//real
+assign pr1=-wi0*xi1;	//real
+
+
+assign si0=pi0+pi1; 	//imaginary
+assign sr0=pr0+pr1; 	//real
+
+assign yr0=xr0+sr0; 	//real
+assign yi0=xi0+si0; 	//imaginary
+
+assign yr1=xr0-sr0; 	//real
+assign yi1=xi0-si0;  	//imaginary
+*/
+
+/*
+multiplier_3_8 m381(xr1,wi0,pi0);	//imaginary
+multiplier_3_8 m382(xi1,wr0,pi1);	//imaginary
+multiplier_3_8 m383(xr1,wr0,pr0);	//real
+multiplier_3_8 m384(xi1,-wi0,pr1);	//real
+
+adder_8_8 a881(pi0,pi1,si0);	//imaginary
+adder_8_8 a882(pr0,pr1,sr0); 	//real
+
+adder_3_8 a381(xr0,sr0,yr0);	//real
+adder_3_8 a382(xi0,si0,yi0);	//imaginary
+
+adder_3_8 a383(xr0,-sr0,yr1);	//real
+adder_3_8 a384(xi0,-si0,yi1);	//imaginary
+*/
+
+/*
+sign_adder_4_8 s481(pi0,pi1,si0); //imaginary
+sign_adder_4_8 s482(pr0,pr1,sr0); //real
+
+sign_adder_2 s21(xi0,si0,yi0); //imaginary
+sign_adder_2 s22(xr0,sr0,yr0); //real
+
+assign p=-si0;
+assign q=-sr0;
+
+sign_adder_2 s23(xi0,p,yi1); //imaginary
+sign_adder_2 s24(xr0,q,yr1); //real
+*/
+
+
