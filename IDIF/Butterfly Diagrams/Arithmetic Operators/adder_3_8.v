@@ -8,5 +8,5 @@ input wire signed[7:0] b;
 output wire signed[7:0] sum;
 
 assign sum=(a+b)/2;
-//sum = sum/2;
+
 endmodule
