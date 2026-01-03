@@ -1,0 +1,121 @@
+module dit
+(
+clk,rst,
+xr0,xr1,xr2,xr3,xr4,xr5,xr6,xr7,
+xi0,xi1,xi2,xi3,xi4,xi5,xi6,xi7,
+sel,
+yr,yi
+);
+
+
+input wire clk,rst;
+
+input wire signed [2:0] xr0,xr1,xr2,xr3,xr4,xr5,xr6,xr7,   //Real part of input
+			xi0,xi1,xi2,xi3,xi4,xi5,xi6,xi7;    //Imaginary part of input
+
+//Twiddle Factors
+parameter [7:0] wr20=1; //real
+parameter [7:0] wi20=0; //imaginary
+
+
+parameter [7:0] wr40=1; //real
+parameter [7:0] wi40=0; //imaginary
+
+parameter [7:0] wr41=0;  //real
+parameter [7:0] wi41=-1; //imaginary
+
+
+parameter [7:0] wr80=1; //real
+parameter [7:0] wi80=0; //imaginary     
+
+parameter [7:0] wr81=0.707;   //real
+parameter [7:0] wi81=-0.707; //imaginary
+
+parameter [7:0] wr82=0;      //real
+parameter [7:0] wi82=-1;     //imaginary
+
+parameter [7:0] wr83=-0.707; //real
+parameter [7:0] wi83=-0.707; //imaginary
+
+
+
+input wire [2:0] sel;
+
+output reg signed [7:0] yr,yi;
+
+wire signed [7:0] y0r,y1r,y2r,y3r,y4r,y5r,y6r,y7r,
+		  y0i,y1i,y2i,y3i,y4i,y5i,y6i,y7i;
+
+
+wire signed [7:0] br0,bi0,
+		  br1,bi1,
+		  br2,bi2,
+		  br3,bi3,
+		  br4,bi4,
+		  br5,bi5,
+		  br6,bi6,
+		  br7,bi7; //Stage-1 [2-Point]
+
+wire signed [7:0] cr0,ci0,
+		  cr1,ci1,
+		  cr2,ci2,
+		  cr3,ci3,
+		  cr4,ci4,
+		  cr5,ci5,
+		  cr6,ci6,
+		  cr7,ci7; //Stage-2 [4-Point]
+
+//Stage-1 [2-Point]
+bfly2 b21(xr0,xr4,xi0,xi4,wr20,wi20,br0,br1,bi0,bi1);
+bfly2 b22(xr2,xr6,xi2,xi6,wr20,wi20,br2,br3,bi2,bi3);
+bfly2 b23(xr1,xr5,xi1,xi5,wr20,wi20,br4,br5,bi4,bi5);
+bfly2 b24(xr3,xr7,xi3,xi7,wr20,wi20,br6,br7,bi6,bi7);
+
+//Stage-2 [4-Point]
+bfly4_8 b41(br0,br2,bi0,bi2,wr40,wi40,cr0,cr1,ci0,ci1);
+bfly4_8 b42(br1,br3,bi1,bi3,wr41,wi41,cr2,cr3,ci2,ci3);
+bfly4_8 b43(br4,br6,bi4,bi6,wr40,wi40,cr4,cr5,ci4,ci5);
+bfly4_8 b44(br5,br7,bi5,bi7,wr41,wi41,cr6,cr7,ci6,ci7);
+
+//Stage-3 [8-Point]
+bfly4_8 b81(cr0,cr4,ci0,ci4,wr80,wi80,y0r,y4r,y0i,y4i);
+bfly4_8 b82(cr2,cr6,ci2,ci6,wr81,wi81,y1r,y5r,y1i,y5i);
+bfly4_8 b83(cr1,cr5,ci1,ci5,wr82,wi82,y2r,y6r,y2i,y6i);
+bfly4_8 b84(cr3,cr7,ci3,ci7,wr83,wi83,y3r,y7r,y3i,y7i);
+
+
+always@(posedge clk)
+
+begin
+
+  if(rst)
+
+  begin
+
+  yr=0;
+  yi=0;
+
+  end
+
+  else 
+
+  begin
+
+     case(sel)
+
+  0:begin yr=y0r; yi=y0i; end
+  1:begin yr=y1r; yi=y1i; end
+  2:begin yr=y2r; yi=y2i; end
+  3:begin yr=y3r; yi=y3i; end
+  4:begin yr=y4r; yi=y4i; end
+  5:begin yr=y5r; yi=y5i; end
+  6:begin yr=y6r; yi=y6i; end
+  7:begin yr=y7r; yi=y7i; end
+
+ endcase
+
+ end
+
+end
+
+endmodule
