@@ -1,4 +1,5 @@
 This repository contains the Implementation of 8 Point Decimation In Time [DIT] and 8 Point Inverse Decimation In Frequency [IDIF] using Radix-2 Fast Fourier Transform Algorithm [FFT] in Verilog using Cadence Incisive.
+.
 
 The DIT Folder contains the following :-
 1. "dit.v" - this file contains the top design code of DIT-FFT, where underlying components like butteryfly diagrams and arithmetic operators are integrated.
